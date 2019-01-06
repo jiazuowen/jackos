@@ -1,10 +1,16 @@
+OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj \
+		dsctbl.obj int.obj fifo.obj
+
 TOOLPATH = ../z_tools/
-INCPATH	 = ../jackos/
+INCPATH	 = ../z_tools/haribote/
+
 MAKE     = $(TOOLPATH)make.exe -r
 NASK     = $(TOOLPATH)nask.exe
 CC1		 = $(TOOLPATH)cc1.exe -I$(INCPATH) -Os -Wall -quiet
 GAS2NASK = $(TOOLPATH)gas2nask.exe -a
 OBJ2BIM  = $(TOOLPATH)obj2bim.exe
+MAKEFONT = $(TOOLPATH)makefont.exe
+BIN2OBJ  = $(TOOLPATH)bin2obj.exe
 BIM2HRB  = $(TOOLPATH)bim2hrb.exe
 RULEFILE = $(TOOLPATH)haribote/haribote.rul
 EDIMG    = $(TOOLPATH)edimg.exe
@@ -12,6 +18,7 @@ IMGTOL   = $(TOOLPATH)imgtol.com
 COPY     = copy
 DEL      = del
 
+#默认目标
 default :
 	$(MAKE) img
 
@@ -20,22 +27,16 @@ ipl.bin : ipl.nas Makefile
 	
 asmhead.bin : asmhead.nas Makefile
 	$(NASK) asmhead.nas asmhead.bin asmhead.lst
+	
+hankaku.bin	: hankaku.txt Makefile
+	$(MAKEFONT) hankaku.txt hankaku.bin
 
-bootpack.gas : bootpack.c Makefile
-	$(CC1) -o bootpack.gas bootpack.c
+hankaku.obj : hankaku.bin Makefile
+	$(BIN2OBJ) hankaku.bin hankaku.obj _hankaku
 
-bootpack.nas : bootpack.gas Makefile
-	$(GAS2NASK) bootpack.gas bootpack.nas
-
-bootpack.obj : bootpack.nas Makefile
-	$(NASK) bootpack.nas bootpack.obj bootpack.lst
-
-naskfunc.obj : naskfunc.nas Makefile
-	$(NASK) naskfunc.nas naskfunc.obj naskfunc.lst
-
-bootpack.bim : bootpack.obj naskfunc.obj Makefile
+bootpack.bim : $(OBJS_BOOTPACK) Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:bootpack.bim stack:3136k map:bootpack.map \
-		bootpack.obj naskfunc.obj
+		$(OBJS_BOOTPACK)
 # 3MB+64KB=3136KB
 
 bootpack.hrb : bootpack.bim Makefile
@@ -49,16 +50,29 @@ jackos.img : ipl.bin jackos.sys Makefile
 		wbinimg src:ipl.bin len:512 from:0 to:0 \
 		copy from:jackos.sys to:@: \
 		imgout:jackos.img
+		
+#一般规则
+%.gas : %.c Makefile
+	$(CC1) -o $*.gas $*.c
+
+%.nas : %.gas Makefile
+	$(GAS2NASK) $*.gas $*.nas
+
+%.obj : %.nas Makefile
+	$(NASK) $*.nas $*.obj $*.lst
 
 img :
 	$(MAKE) jackos.img
 	
+run :
+	$(MAKE) img
+	$(COPY) jackos.img ..\z_tools\qemu\fdimage0.bin
+	$(MAKE) -C ../z_tools/qemu
+	
 clean :
 	-$(DEL) *.bin
 	-$(DEL) *.lst
-	-$(DEL) *.gas
 	-$(DEL) *.obj
-	-$(DEL) bootpack.nas
 	-$(DEL) bootpack.map
 	-$(DEL) bootpack.bim
 	-$(DEL) bootpack.hrb

@@ -1,11 +1,11 @@
-; jackos-ipl
+; jackos-ipl，??程序加?器(Initial Program Loader)
 ; TAB=4
 
-CYLS	EQU		10				; どこまで読み込むか
+CYLS	EQU		10				; CYLS常量, CYLS=10
 
-		ORG		0x7c00			; このプログラムがどこに読み込まれるのか
+		ORG		0x7c00			; 指明程序的装?地址
 
-; 以下は標準的なFAT12フォーマットフロッピーディスクのための記述
+; 一下的?述用于?准的FAT12格式??
 
 		JMP		entry
 		DB		0x90
@@ -28,52 +28,52 @@ CYLS	EQU		10				; どこまで読み込むか
 		DB		"FAT12   "		; フォーマットの名前（8バイト）
 		RESB	18				; とりあえず18バイトあけておく
 
-; プログラム本体
+; 程序核心
 
 entry:
-		MOV		AX,0			; レジスタ初期化
+		MOV		AX,0			; 初始化
 		MOV		SS,AX
 		MOV		SP,0x7c00
 		MOV		DS,AX
 
-; ディスクを読む
+; ?磁?
 
 		MOV		AX,0x0820
-		MOV		ES,AX
-		MOV		CH,0			; シリンダ0
-		MOV		DH,0			; ヘッド0
-		MOV		CL,2			; セクタ2
+		MOV		ES,AX			; ES附加段寄存器，?在内存地址?0x0820 * 16 = 0x8200
+		MOV		CH,0			;柱面0
+		MOV		DH,0			;磁?0
+		MOV		CL,2			;扇区2
 readloop:
-		MOV		SI,0			; 失敗回数を数えるレジスタ
+		MOV		SI,0			; ??失?次数的寄存器
 retry:
-		MOV		AH,0x02			; AH=0x02 : ディスク読み込み
-		MOV		AL,1			; 1セクタ
-		MOV		BX,0
-		MOV		DL,0x00			; Aドライブ
-		INT		0x13			; ディスクBIOS呼び出し
-		JNC		next			; エラーがおきなければnextへ
-		ADD		SI,1			; SIに1を足す
-		CMP		SI,5			; SIと5を比較
-		JAE		error			; SI >= 5 だったらerrorへ
+		MOV		AH,0x02			; AH=0x02??，0x03写?
+		MOV		AL,1			; 1一个扇区
+		MOV		BX,0			; BX基址寄存器
+		MOV		DL,0x00			; A??器
+		INT		0x13			; ?用磁?BIOS
+		JNC		next			; 没有出?跳?到next
+		ADD		SI,1			; SI+=1
+		CMP		SI,5			; 比?SI和5
+		JAE		error			; SI >= 5 ?跳?到error
 		MOV		AH,0x00
-		MOV		DL,0x00			; Aドライブ
-		INT		0x13			; ドライブのリセット
+		MOV		DL,0x00			; A??器
+		INT		0x13			; 重置??器
 		JMP		retry
 next:
-		MOV		AX,ES			; アドレスを0x200進める
-		ADD		AX,0x0020
-		MOV		ES,AX			; ADD ES,0x020 という命令がないのでこうしている
-		ADD		CL,1			; CLに1を足す
-		CMP		CL,18			; CLと18を比較
-		JBE		readloop		; CL <= 18 だったらreadloopへ
+		MOV		AX,ES			; 把内存地址后移0x200
+		ADD		AX,0x0020		; 0x0020 x 16 = 0x200 使用[ES:BX]
+		MOV		ES,AX			; 没有ADD ES,0x020??的指令，所以??干
+		ADD		CL,1			; CL+=1
+		CMP		CL,18			; CL和18比?
+		JBE		readloop		; CL <= 18 ?跳?到readloop
 		MOV		CL,1
 		ADD		DH,1
 		CMP		DH,2
-		JB		readloop		; DH < 2 だったらreadloopへ
+		JB		readloop		; DH < 2 ?跳?到readloop
 		MOV		DH,0
 		ADD		CH,1
 		CMP		CH,CYLS
-		JB		readloop		; CH < CYLS だったらreadloopへ
+		JB		readloop		; CH < CYLS ?跳?到readloop
 
 ; 読み終わったけどとりあえずやることないので寝る
 		

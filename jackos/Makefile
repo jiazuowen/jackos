@@ -1,8 +1,10 @@
-OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj \
-		dsctbl.obj int.obj fifo.obj
-
 TOOLPATH = ../z_tools/
 INCPATH	 = ../z_tools/haribote/
+
+
+OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj \
+		dsctbl.obj int.obj fifo.obj keyboard.obj \
+		mouse.obj memory.obj sheet.obj
 
 MAKE     = $(TOOLPATH)make.exe -r
 NASK     = $(TOOLPATH)nask.exe
@@ -34,6 +36,9 @@ hankaku.bin	: hankaku.txt Makefile
 hankaku.obj : hankaku.bin Makefile
 	$(BIN2OBJ) hankaku.bin hankaku.obj _hankaku
 
+naskfunc.obj : naskfunc.nas Makefile
+	$(NASK) naskfunc.nas naskfunc.obj naskfunc.lst
+
 bootpack.bim : $(OBJS_BOOTPACK) Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:bootpack.bim stack:3136k map:bootpack.map \
 		$(OBJS_BOOTPACK)
@@ -43,7 +48,7 @@ bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0
 	
 jackos.sys : asmhead.bin bootpack.hrb Makefile
-	copy /B asmhead.bin+bootpack.hrb jackos.sys
+	copy /B asmhead.bin /B + bootpack.hrb jackos.sys
 
 jackos.img : ipl.bin jackos.sys Makefile
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \

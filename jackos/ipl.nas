@@ -87,19 +87,19 @@ putloop:
 		ADD		SI,1			; SIに1を足す
 		CMP		AL,0
 		JE		fin
-		MOV		AH,0x0e			; 一文字表示ファンクション
-		MOV		BX,15			; カラーコード
-		INT		0x10			; ビデオBIOS呼び出し
+		MOV		AH,0x0e			; ?示一个文字
+		MOV		BX,15			; 指示字符?色
+		INT		0x10			; ?用??BIOS
 		JMP		putloop
 fin:
-		HLT						; 何かあるまでCPUを停止させる
-		JMP		fin				; 無限ループ
+		HLT						; ?CPU停止，等待命令
+		JMP		fin				; 无限循?
 msg:
-		DB		0x0a, 0x0a		; 改行を2つ
+		DB		0x0a, 0x0a		; ?次?行
 		DB		"load error"
-		DB		0x0a			; 改行
+		DB		0x0a			; ?行
 		DB		0
 
-		RESB	0x7dfe-$		; 0x7dfeまでを0x00で埋める命令
+		RESB	0x7dfe-$		; 填写0x00,直到0x7dfe
 
 		DB		0x55, 0xaa

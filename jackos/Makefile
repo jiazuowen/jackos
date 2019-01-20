@@ -73,6 +73,10 @@ run :
 	$(MAKE) img
 	$(COPY) jackos.img ..\z_tools\qemu\fdimage0.bin
 	$(MAKE) -C ../z_tools/qemu
+
+run_only:
+	$(COPY) jackos.img ..\z_tools\qemu\fdimage0.bin
+	$(MAKE) -C ../z_tools/qemu
 	
 clean :
 	-$(DEL) *.bin

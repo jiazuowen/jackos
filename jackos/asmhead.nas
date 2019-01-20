@@ -47,7 +47,7 @@ VRAM	EQU		0x0ff8			; 图像缓冲区的地址
 
 		CALL	waitkbdout
 		MOV		AL,0xd1
-		OUT		0x64,AL
+		OUT		0x64,AL			; OUT 向0x64号外设写一个字节
 		CALL	waitkbdout
 		MOV		AL,0xdf			; enable A20
 		OUT		0x60,AL
@@ -62,7 +62,7 @@ VRAM	EQU		0x0ff8			; 图像缓冲区的地址
 		AND		EAX,0x7fffffff	; 设置bit31为0(为了禁止分页)
 		OR		EAX,0x00000001	; 设置bit0为1(为了切换到保护模式)
 		MOV		CR0,EAX
-		JMP		pipelineflush
+		JMP		pipelineflush	; 应为模式变了，要重新解释一遍，所以加入了JMP命令
 pipelineflush:
 		MOV		AX,1*8			;  可读写的段32bit
 		MOV		DS,AX
@@ -75,7 +75,7 @@ pipelineflush:
 
 		MOV		ESI,bootpack	; 转送源
 		MOV		EDI,BOTPAK		; 转送目的地
-		MOV		ECX,512*1024/4
+		MOV		ECX,512*1024/4	; 512KB是自己决定的，要比bootpack.hrb的长度大很多
 		CALL	memcpy
 
 ; 磁盘数据最终转送到它本来的位置去
@@ -113,7 +113,7 @@ pipelineflush:
 		CALL	memcpy
 skip:
 		MOV		ESP,[EBX+12]	; 栈初始值
-		JMP		DWORD 2*8:0x0000001b
+		JMP		DWORD 2*8:0x0000001b	;  将2*8带入CS中，同时移动到0x1b号地址, 第二段的0x1b, 是0x280000+0x1b
 
 waitkbdout:
 		IN		AL,0x64
@@ -132,7 +132,7 @@ memcpy:
 		RET
 ; memcpy
 
-		ALIGNB	16
+		ALIGNB	16				; 一直添加DBO直到地址被16整除时
 GDT0:
 		RESB	8				; NULL selector
 		DW		0xffff,0x0000,0x9200,0x00cf	; 可以读写的段(segment)32bit

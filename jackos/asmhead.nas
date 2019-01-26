@@ -1,9 +1,19 @@
 ; jack-os boot asm
 ; TAB=4
 
-BOTPAK	EQU		0x00280000		;
-DSKCAC	EQU		0x00100000		;
-DSKCAC0	EQU		0x00008000		;
+[INSTRSET "i486p"]				; 使用486指令 的描述
+
+VBEMODE	EQU 	0x105			; 1024*768*8bit
+; 	画面模式浏览表
+; 	0x100 :  640 X  400 X 8bit
+;	0x101 :  640 x  480 x 8bit
+;	0x103 :  800 x  600 x 8bit
+;	0x105 : 1024 x  768 x 8bit
+;	0x107 : 1280 x 1024 x 8bit
+
+BOTPAK	EQU		0x00280000		; bootpack装入的位置
+DSKCAC	EQU		0x00100000		; 磁盘缓存的位置
+DSKCAC0	EQU		0x00008000		; 磁盘缓存的位置(实时模式)
 
 ; 有关BOOT_INFO
 CYLS	EQU		0x0ff0			; 启动区读硬盘读到何处为止
@@ -15,8 +25,50 @@ VRAM	EQU		0x0ff8			; 图像缓冲区的地址
 
 		ORG		0xc200			; 程序在内存中的加载地址
 
-; 
+; 确认VBE是否存在
+		MOV		AX,0x9000
+		MOV		ES,AX
+		MOV		DI,0
+		MOV		AX,0x4f00
+		INT		0x10
+		CMP 	AX,0x004f
+		JNE		scrn320
+	
+; 检查VBE的版本
+		MOV		AX,[ES:DI+4]
+		CMP 	AX,0x0200
+		JB  	scrn320				; if (AX < 0x0200) goto scrn320
 
+; 取得画面模式
+		MOV 	CX,VBEMODE
+		MOV		AX,0x4f01
+		INT		0x10
+		CMP		AX,0x004f
+		JNE		scrn320
+
+; 画面模式信息的确认
+		CMP		BYTE [ES:DI+0x19],8
+		JNE		scrn320
+		CMP	 	BYTE [ES:DI+0x1b],4
+		JNE		scrn320
+		MOV		AX,[ES:DI+0x00]
+		AND		AX,0x0080
+		JZ		scrn320				; 模式属性的bit7是0，所以放弃
+
+; 画面模式的切换
+		MOV		BX,VBEMODE+0x4000
+		MOV		AX,0x4f02
+		INT		0x10
+		MOV		BYTE [VMODE],8		; 记下画面模式
+		MOV		AX,[ES:DI+0x12]
+		MOV		[SCRNX],AX
+		MOV		AX,[ES:DI+0x14]
+		MOV		[SCRNY],AX
+		MOV		EAX,[ES:DI+0x28]
+		MOV		[VRAM],EAX
+		JMP		keystatus
+
+scrn320:
 		MOV		AL,0x13			; VGA显卡，320*200*8位色彩, 这种模式下的VRAM在0xa0000~0xaffff中共64KB
 		MOV		AH,0x00
 		INT		0x10
@@ -27,6 +79,7 @@ VRAM	EQU		0x0ff8			; 图像缓冲区的地址
 
 ; 使用BOIS取得键盘上各种LED指示灯的状态
 
+keystatus:
 		MOV		AH,0x02
 		INT		0x16 			; keyboard BIOS
 		MOV		[LEDS],AL
@@ -53,9 +106,7 @@ VRAM	EQU		0x0ff8			; 图像缓冲区的地址
 		OUT		0x60,AL
 		CALL	waitkbdout
 
-; 切换到保护模式
-
-[INSTRSET "i486p"]				; 使用486指令 的描述
+; 切换到保护模式			
 
 		LGDT	[GDTR0]			; 设置临时GDT
 		MOV		EAX,CR0

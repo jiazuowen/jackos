@@ -205,6 +205,7 @@ struct TSS32
 struct TASK {
 	int sel, flags;				/*sel用来存放GDT的编号*/
 	int level, priority;		/*任务优先级*/
+	struct FIFO32 fifo;
 	struct TSS32 tss;
 };
 struct TASKLEVEL {
@@ -220,6 +221,7 @@ struct TASKCTL
 	struct TASK	tasks0[MAX_TASKS];
 };
 extern struct TIMER	*task_timer;
+struct TASK *task_now(void);
 struct TASK	*task_init(struct MEMMAN *memman);
 struct TASK *task_alloc(void);
 void task_run(struct TASK *task, int level, int priority);

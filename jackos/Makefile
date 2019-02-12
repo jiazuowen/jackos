@@ -4,7 +4,8 @@ INCPATH	 = ../z_tools/haribote/
 
 OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj \
 		dsctbl.obj int.obj fifo.obj keyboard.obj \
-		mouse.obj memory.obj sheet.obj timer.obj mtask.obj
+		mouse.obj memory.obj sheet.obj timer.obj mtask.obj \
+		file.obj window.obj console.obj
 
 MAKE     = $(TOOLPATH)make.exe -r
 NASK     = $(TOOLPATH)nask.exe
@@ -46,16 +47,20 @@ bootpack.bim : $(OBJS_BOOTPACK) Makefile
 
 bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0
+
+hlt.hrb : hlt.nas Makefile
+	$(NASK) hlt.nas hlt.hrb hlt.lst
 	
 jackos.sys : asmhead.bin bootpack.hrb Makefile
 	copy /B asmhead.bin /B + bootpack.hrb jackos.sys
 
-jackos.img : ipl.bin jackos.sys Makefile
+jackos.img : ipl.bin jackos.sys hlt.hrb Makefile
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:ipl.bin len:512 from:0 to:0 \
 		copy from:jackos.sys to:@: \
 		copy from:ipl.nas to:@: \
 		copy from:make.bat to:@: \
+		copy from:hlt.hrb to:@: \
 		imgout:jackos.img
 		
 #一般规则

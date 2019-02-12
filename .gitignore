@@ -6,5 +6,6 @@ bootpack.nas
 bootpack.map
 bootpack.bim
 bootpack.hrb
+hlt.hrb
 jackos.sys
 jackos.img

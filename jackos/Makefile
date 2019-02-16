@@ -48,19 +48,20 @@ bootpack.bim : $(OBJS_BOOTPACK) Makefile
 bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0
 
-hlt.hrb : hlt.nas Makefile
-	$(NASK) hlt.nas hlt.hrb hlt.lst
+# hello.hrb : hello.nas Makefile
+# 	$(NASK) hello.nas hello.hrb hello.lst
 	
 jackos.sys : asmhead.bin bootpack.hrb Makefile
 	copy /B asmhead.bin /B + bootpack.hrb jackos.sys
 
-jackos.img : ipl.bin jackos.sys hlt.hrb Makefile
+jackos.img : ipl.bin jackos.sys hello.hrb hello2.hrb Makefile
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:ipl.bin len:512 from:0 to:0 \
 		copy from:jackos.sys to:@: \
 		copy from:ipl.nas to:@: \
 		copy from:make.bat to:@: \
-		copy from:hlt.hrb to:@: \
+		copy from:hello.hrb to:@: \
+		copy from:hello2.hrb to:@: \
 		imgout:jackos.img
 		
 #一般规则
@@ -72,6 +73,9 @@ jackos.img : ipl.bin jackos.sys hlt.hrb Makefile
 
 %.obj : %.nas Makefile
 	$(NASK) $*.nas $*.obj $*.lst
+
+%.hrb : %.nas Makefile
+	$(NASK) $*.nas $*.hrb $*.lst
 
 img :
 	$(MAKE) jackos.img
@@ -89,10 +93,9 @@ clean :
 	-$(DEL) *.bin
 	-$(DEL) *.lst
 	-$(DEL) *.obj
+	-$(DEL) *.hrb
 	-$(DEL) bootpack.map
 	-$(DEL) bootpack.bim
-	-$(DEL) bootpack.hrb
-	-$(DEL) hlt.hrb
 	-$(DEL) jackos.sys
 	
 src_only :

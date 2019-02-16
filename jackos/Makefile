@@ -92,6 +92,7 @@ clean :
 	-$(DEL) bootpack.map
 	-$(DEL) bootpack.bim
 	-$(DEL) bootpack.hrb
+	-$(DEL) hlt.hrb
 	-$(DEL) jackos.sys
 	
 src_only :

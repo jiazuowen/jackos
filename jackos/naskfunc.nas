@@ -15,11 +15,13 @@
 	GLOBAL	_load_tr
 	GLOBAL  _asm_inthandler20, _asm_inthandler21
 	GLOBAL  _asm_inthandler27, _asm_inthandler2c
+	GLOBAL	_asm_inthandler0d
 	GLOBAL	_memtest_sub
 	GLOBAL	_farjmp, _farcall
-	GLOBAL  _asm_hrb_api
+	GLOBAL  _asm_hrb_api, _start_app
 	EXTERN	_inthandler20, _inthandler21
 	EXTERN 	_inthandler27, _inthandler2c
+	EXTERN  _inthandler0d
 	EXTERN  _hrb_api
 
 [SECTION .text]			;目标文件中写了这些之后再写程序
@@ -124,10 +126,11 @@ _asm_inthandler20:
 	MOV		ES,AX
 	CALL	_inthandler20
 	POP		EAX
-	POPAD	
+	POPAD
 	POP		DS
 	POP		ES
 	IRETD
+
 
 _asm_inthandler21:
 	PUSH	ES
@@ -159,10 +162,9 @@ _asm_inthandler27:
 	POPAD
 	POP		DS
 	POP		ES
-	IRETD
+	IRETD	
 
 _asm_inthandler2c:
-	handler2c:
 	PUSH	ES
 	PUSH	DS
 	PUSHAD
@@ -176,7 +178,27 @@ _asm_inthandler2c:
 	POPAD
 	POP		DS
 	POP		ES
-	IRETD
+	IRETD	
+
+_asm_inthandler0d:
+		STI
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV 	EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0d
+		CMP		EAX,0
+		JNE		end_app
+		POP 	EAX
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4				; 在INT 0x0d中需要这句
+		IRETD
 
 _memtest_sub:	; unsigned int memtest_sub(unsigned int start, unsigned int end)
 		PUSH	EDI						; 
@@ -219,12 +241,48 @@ _farcall:		; void farcall(int eip, int cs);
 		CALL	FAR [ESP+4]		; eip, cs
 		RET
 
-_asm_hrb_api:
+_asm_hrb_api:	
 		STI
-		PUSHAD					;用于保存寄存器的值
-
-		PUSHAD					;用于向hrb_api传送的Push
+		PUSH 	DS
+		PUSH	ES
+		PUSHAD					; 用于保存
+		PUSHAD					; 用于向hrb_api传值
+		MOV		AX,SS
+		MOV		DS,AX			; 将操作系统用的段地址存入DS和SS
+		MOV		ES,AX
 		CALL	_hrb_api
+		CMP		EAX,0			; 当EAX不为0时程序结束
+		JNE		end_app
 		ADD		ESP,32
 		POPAD
+		POP 	ES
+		POP		DS
 		IRETD
+end_app:
+		; EAX为tss.esp0的地址时
+		MOV		ESP,[EAX]
+		POPAD	
+		RET						; 返回cmd_app
+
+_start_app:						; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
+		PUSHAD					; 将32位的寄存器的值全部保存起来
+		MOV		EAX,[ESP+36]	; 应用程序用的EIP
+		MOV		ECX,[ESP+40]	; 应用程序用的CS
+		MOV		EDX,[ESP+44]	; 应用程序用的ESP
+		MOV		EBX,[ESP+48]	; 应用程序用的DS/SS
+		MOV		EBP,[ESP+52] 	; tss.esp0的地址
+		MOV		[EBP  ],ESP		; 保存操作系统用的ESP
+		MOV 	[EBP+4],SS		; 保存操作系统用的SS
+		MOV		ES,BX
+		MOV		DS,BX
+		MOV		FS,BX
+		MOV		GS,BX
+		; 下面调整栈，以免用RETF跳转到应用程序
+		OR 		ECX,3			; 将应用程序的段号和3进行OR运算
+		OR		EBX,3			; 将应用程序的段号和3进行OR运算
+		PUSH	EBX				; 应用程序SS
+		PUSH 	EDX				; 应用程序ESP
+		PUSH	ECX				; 应用程序CS
+		PUSH 	EAX				; 应用程序EIP
+		RETF
+		; 应用程序结束后不会回到这里

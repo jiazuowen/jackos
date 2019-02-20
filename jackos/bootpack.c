@@ -14,6 +14,10 @@ void HariMain(void)
 	struct MOUSE_DEC mdec;
 	struct MEMMAN* memman = (struct MEMMAN*) MEMMAN_ADDR;
 	struct SHTCTL *shtctl;
+	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
+	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_cons;
+	struct TASK *task_a, *task_cons;
+	struct TIMER *timer;
 	static char keytable0[0x80] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0,   0,
 		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0,   0,   'A', 'S',
@@ -34,11 +38,8 @@ void HariMain(void)
 		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
 	};
-	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
-	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_cons;
-	struct TASK *task_a, *task_cons;
-	struct TIMER *timer;
 	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
+	struct CONSOLE *cons;
 	
 	init_gdtidt();
 	init_pic();
@@ -221,6 +222,16 @@ void HariMain(void)
 					key_leds ^= 1;
 					fifo32_put(&keycmd, KEYCMD_LED);
 					fifo32_put(&keycmd, key_leds);
+				}
+				if (i == 256 + 0x3b && 
+						key_shift != 0 && 
+						task_cons->tss.ss0 != 0) { /*Shift + F1*/
+					cons = (struct CONSOLE *)*((int *) 0x0fec);
+					cons_putstr0(cons, "\nBreak(Key):\n");
+					io_cli(); /*不能在改变寄存器时切换到其它任务*/
+					task_cons->tss.eax = (int) &(task_cons->tss.esp0);
+					task_cons->tss.eip = (int) asm_end_app;
+					io_sti();
 				}
 				if (i == 256 + 0xfa) { /*键盘成功接收数据*/
 					keycmd_wait = -1;

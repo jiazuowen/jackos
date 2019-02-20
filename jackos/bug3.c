@@ -3,7 +3,7 @@ void api_end(void);
 
 void HariMain(void)
 {
-    api_putchar('A');
-    api_end();
-    return;
+    for (;;) {
+        api_putchar('a');
+    }
 }

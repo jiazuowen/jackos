@@ -331,13 +331,17 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sheet_updown(sht, 3);	/*背景层3，位于task_a之上*/
 		reg[7] = (int) sht;
 	} else if (edx == 6) {
-		sht = (struct SHEET *) ebx;
+		sht = (struct SHEET *) (ebx & 0xfffffff0);
 		putfonts8_asc(sht->buf, sht->bxsize, esi, edi, eax, (char *) ebp + ds_base);
-		sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
+		}
 	} else if (edx == 7) {
-		sht = (struct SHEET *) ebx;
+		sht = (struct SHEET *) (ebx & 0xfffffff0);
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
-		sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		}
 	} else if (edx == 8) {
 		memman_init((struct MEMMAN *) (ebx + ds_base));
 		ecx &= 0xfffffff0;	/* 以十六字节为单位 */
@@ -348,6 +352,15 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	} else if (edx == 10) {
 		ecx = (ecx + 0x0f) & 0xfffffff0;
 		memman_free((struct MEMMAN *) (ebx + ds_base), eax, ecx);
+	} else if (edx == 11) {
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
+		sht->buf[sht->bxsize * edi + esi] = eax;
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, esi, edi, esi + 1, edi + 1);
+		}
+	} else if (edx == 12) {
+		sht = (struct SHEET *) ebx;
+		sheet_refresh(sht, eax, ecx, esi, edi);
 	}
 	return 0;
 }

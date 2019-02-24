@@ -4,7 +4,6 @@
 
 void console_task(struct SHEET *sheet, unsigned int memtotal) 
 {
-	struct TIMER *timer;
 	struct TASK	*task = task_now();
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	int i, fifobuf[128], *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
@@ -17,9 +16,9 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 	*((int *)0x0fec) = (int)&cons;
 	
 	fifo32_init(&task->fifo, 128, fifobuf, task);
-	timer = timer_alloc();
-	timer_init(timer, &task->fifo, 1);
-	timer_settime(timer, 50);
+	cons.timer = timer_alloc();
+	timer_init(cons.timer, &task->fifo, 1);
+	timer_settime(cons.timer, 50);
 	file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x000200));
 
 	/*显示提示符*/
@@ -35,17 +34,17 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 			io_sti();
 			if (i <= 1) {
 				if (i != 0) {
-					timer_init(timer, &task->fifo, 0);
+					timer_init(cons.timer, &task->fifo, 0);
 					if (cons.cur_c >= 0) {
 						cons.cur_c = COL8_FFFFFF;
 					}
 				} else {
-					timer_init(timer, &task->fifo, 1);
+					timer_init(cons.timer, &task->fifo, 1);
 					if (cons.cur_c >= 0) {
 						cons.cur_c = COL8_000000;
 					}
 				}
-				timer_settime(timer, 50);
+				timer_settime(cons.timer, 50);
 			}
 			if (i == 2) {	/*光标ON*/
 				cons.cur_c = COL8_FFFFFF;
@@ -254,6 +253,8 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	char name[18], *p, *q;
 	struct TASK *task = task_now();
 	int i, segsiz, datsiz, esp, dathrb;
+	struct SHTCTL *shtctl;
+	struct SHEET *sht;
 
 	/*根据命令行生成文件名*/
 	for (i = 0; i < 13; i++) {
@@ -293,6 +294,14 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 				q[esp + i] = p[dathrb + i];
 			}
 			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+			for (i = 0; i < MAX_SHEETS; i++) {
+				sht = &(shtctl->sheets0[i]);
+				if (sht->flags != 0 && sht->task == task) {
+					/*找到被应用程序遗留的窗口*/
+					sheet_free(sht);	/*关闭*/
+				}
+			}
 			memman_free_4k(memman, (int) q, segsiz);
 		} else {
 			cons_putstr0(cons, ".hrb file format error.\n");
@@ -315,6 +324,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			/*强行改写通过PUSHAD保存的值*/
 			/* reg[0] : EDI,   reg[1] : ESI,   reg[2] : EBP,   reg[3] : ESP */
 			/* reg[4] : EBX,   reg[5] : EDX,   reg[6] : ECX,   reg[7] : EAX */
+	int i;
+
 	if (edx == 1) {
 		cons_putchar(cons, eax & 0xff, 1);
 	} else if (edx == 2) {
@@ -325,19 +336,20 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		return &(task->tss.esp0);
 	} else if (edx == 5) {
 		sht = sheet_alloc(shtctl);
+		sht->task = task;
 		sheet_setbuf(sht, (char *) ebx + ds_base, esi, edi, eax);
 		make_window8((char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
 		sheet_slide(sht, 100, 50);
 		sheet_updown(sht, 3);	/*背景层3，位于task_a之上*/
 		reg[7] = (int) sht;
 	} else if (edx == 6) {
-		sht = (struct SHEET *) (ebx & 0xfffffff0);
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		putfonts8_asc(sht->buf, sht->bxsize, esi, edi, eax, (char *) ebp + ds_base);
 		if ((ebx & 1) == 0) {
 			sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
 		}
 	} else if (edx == 7) {
-		sht = (struct SHEET *) (ebx & 0xfffffff0);
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
 		if ((ebx & 1) == 0) {
 			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
@@ -361,6 +373,44 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	} else if (edx == 12) {
 		sht = (struct SHEET *) ebx;
 		sheet_refresh(sht, eax, ecx, esi, edi);
+	} else if (edx == 13) {
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
+		hrb_api_linewin(sht, eax, ecx, esi, edi, ebp);
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		}
+	} else if (edx == 14) {
+		sheet_free((struct SHEET *) ebx);
+	} else if (edx == 15) {
+		for (;;) {
+			io_cli();
+			if (fifo32_status(&task->fifo) == 0) {
+				if (eax != 0) {
+					task_sleep(task); /*FIFO为空，休眠并等待*/
+				} else {
+					io_sti();
+					reg[7] = -1;
+					return 0;
+				}
+			}
+			i = fifo32_get(&task->fifo);
+			io_sti();
+			if (i <= 1) { /*光标用定时器*/
+				/*应用程序运行时不需要显示光标，因此总是将下次显示用的值设置为1*/
+				timer_init(cons->timer, &task->fifo, 1); /*下次值为1*/
+				timer_settime(cons->timer, 50);
+			}
+			if (i == 2) { /*光标ON*/
+				cons->cur_c = COL8_FFFFFF;
+			}
+			if (i == 3) { /*光标OFF*/
+				cons->cur_c = -1;
+			}
+			if (256 <= i && i < 511) {
+				reg[7] = i - 256;
+				return 0;
+			}
+		}
 	}
 	return 0;
 }
@@ -382,4 +432,52 @@ int *inthandler0d(int *esp)
 	struct TASK *task = task_now();
 	cons_putstr0(cons, "\nINT 0D :\n General Protected Exception.\n");
 	return &(task->tss.esp0); /*强制结束程序*/
+}
+
+void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col)
+{
+	int i, x, y, len, dx, dy;
+
+	dx = x1 - x0;
+	dy = y1 - y0;
+	x = x0 << 10;
+	y = y0 << 10;
+	if (dx < 0) {
+		dx = -dx;
+	}
+	if (dy < 0) {
+		dy = -dy;
+	}
+	if (dx >= dy) {
+		len = dx + 1;
+		if (x0 > x1) {
+			dx = -1024;
+		} else {
+			dx = 1024;
+		}
+		if (y0 <= y1) {
+			dy = ((y1 - y0 + 1) << 10) / len;
+		} else {
+			dy = ((y1 - y0 - 1) << 10) / len;
+		}
+	} else {
+		len = dy + 1;
+		if (y0 > y1) {
+			dy = -1024;
+		} else {
+			dy =  1024;
+		}
+		if (x0 <= x1) {
+			dx = ((x1 - x0 + 1) << 10) / len;
+		} else {
+			dx = ((x1 - x0 - 1) << 10) / len;
+		}
+	}
+
+	for (i = 0; i < len; i++) {
+		sht->buf[(y >> 10) *sht->bxsize + (x >> 10)] = col;
+		x += dx;
+		y += dy;
+	}
+	return;
 }

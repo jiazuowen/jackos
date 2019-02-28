@@ -32,6 +32,7 @@ void asm_inthandler0c(void);
 void asm_inthandler0d(void);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 void farjmp(int eip, int cs);
+void farcall(int eip, int cs);
 void asm_hrb_api(void);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 void asm_end_app(void);
@@ -74,7 +75,6 @@ void putblock8_8(char *vram, int vxsize, int pxsize,
 #define COL8_008484		14
 #define COL8_848484		15
 
-
 /*dsctbl.c*/
 struct SEGMENT_DESCRIPTOR {
 	short limit_low, base_low;
@@ -102,7 +102,7 @@ void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 
 /*int.c*/
 void init_pic(void);
-void inthandler2c(int *esp);
+void inthandler27(int *esp);
 #define PIC0_ICW1		0x0020		// ICW 初始化控制数据
 #define PIC0_OCW2		0x0020
 #define PIC0_IMR		0x0021		// IMR 中断屏蔽寄存器
@@ -123,29 +123,25 @@ void inthandler21(int *esp);
 #define PORT_KEYDAT				0x0060
 #define PORT_KEYCMD				0x0064
 
-
 /*mouse.c*/
 struct MOUSE_DEC {
 	unsigned char buf[3], phase;
 	int x, y, btn;
 };
-void inthandler27(int *esp);
+void inthandler2c(int *esp);
 void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC* mdec);
 int mouse_decode(struct MOUSE_DEC* mdec, unsigned char data);
 
 /*memory.c*/
 #define MEMMAN_FREES		4090	/*大约32KB*/
 #define MEMMAN_ADDR			0x003c0000
-
 struct FREEINFO {	/*可用信息*/
 	unsigned int addr,size;
 };
-
 struct MEMMAN {		/*内存管理*/
 	int frees, maxfrees, lostsize, losts;
 	struct FREEINFO free[MEMMAN_FREES];
 };
-
 unsigned int memtest(unsigned int start, unsigned int end);
 void memman_init(struct MEMMAN* man);
 unsigned int memman_total(struct MEMMAN* man);
@@ -182,7 +178,7 @@ struct TIMER {
 	struct TIMER *next;
 	unsigned int timeout, flags;
 	struct FIFO32 *fifo;
-	unsigned char data;
+	int data;
 };
 struct TIMERCTL {
 	unsigned int count, next;
@@ -202,8 +198,7 @@ void inthandler20(int *esp);
 #define TASK_GDT0		3			/*从GDT的第几号开始分配给TSS*/
 #define MAX_TASKS_LV	100			/*每个level最多能创建多少个任务*/
 #define MAX_TASKLEVELS	10			/*一共有多少个level*/
-struct TSS32
-{
+struct TSS32 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
 	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
 	int es, cs, ss, ds, fs, gs;
@@ -220,8 +215,7 @@ struct TASKLEVEL {
 	int now;					/*当前正在运行那个任务*/
 	struct TASK *tasks[MAX_TASKS_LV];
 };
-struct TASKCTL
-{
+struct TASKCTL {
 	int now_lv;					/*现在活动中的level*/
 	char lv_change;				/*在下次任务切换时是否需要改变level*/
 	struct TASKLEVEL level[MAX_TASKLEVELS];

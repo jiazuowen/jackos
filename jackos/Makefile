@@ -48,35 +48,35 @@ bootpack.bim : $(OBJS_BOOTPACK) Makefile
 bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0
 
-hello.hrb : hello.nas Makefile
-	$(NASK) hello.nas hello.hrb hello.lst
+# hello.hrb : hello.nas Makefile
+# 	$(NASK) hello.nas hello.hrb hello.lst
 
-hello2.hrb : hello2.nas Makefile
-	$(NASK) hello2.nas hello2.hrb hello2.lst
+# hello2.hrb : hello2.nas Makefile
+# 	$(NASK) hello2.nas hello2.hrb hello2.lst
 
-a.bim : a.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:a.bim map:a.map a.obj a_nask.obj
+# a.bim : a.obj a_nask.obj Makefile
+# 	$(OBJ2BIM) @$(RULEFILE) out:a.bim map:a.map a.obj a_nask.obj
 
-a.hrb : a.bim Makefile
-	$(BIM2HRB) a.bim a.hrb 0
+# a.hrb : a.bim Makefile
+# 	$(BIM2HRB) a.bim a.hrb 0
 
-hello3.bim : hello3.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:hello3.bim map:hello3.map hello3.obj a_nask.obj
+# hello3.bim : hello3.obj a_nask.obj Makefile
+# 	$(OBJ2BIM) @$(RULEFILE) out:hello3.bim map:hello3.map hello3.obj a_nask.obj
 
-hello3.hrb : hello3.bim Makefile
-	$(BIM2HRB) hello3.bim hello3.hrb 0
+# hello3.hrb : hello3.bim Makefile
+# 	$(BIM2HRB) hello3.bim hello3.hrb 0
 
-hello4.bim : hello4.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:hello4.bim stack:1k map:hello4.map hello4.obj a_nask.obj
+# hello4.bim : hello4.obj a_nask.obj Makefile
+# 	$(OBJ2BIM) @$(RULEFILE) out:hello4.bim stack:1k map:hello4.map hello4.obj a_nask.obj
 
-hello4.hrb : hello4.bim Makefile
-	$(BIM2HRB) hello4.bim hello4.hrb 0
+# hello4.hrb : hello4.bim Makefile
+# 	$(BIM2HRB) hello4.bim hello4.hrb 0
 
-hello5.bim : hello5.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:hello5.bim stack:1k map:hello5.map hello5.obj
+# hello5.bim : hello5.obj Makefile
+# 	$(OBJ2BIM) @$(RULEFILE) out:hello5.bim stack:1k map:hello5.map hello5.obj
 
-hello5.hrb : hello5.bim Makefile
-	$(BIM2HRB) hello5.bim hello5.hrb 0
+# hello5.hrb : hello5.bim Makefile
+# 	$(BIM2HRB) hello5.bim hello5.hrb 0
 
 winhelo.bim : winhelo.obj a_nask.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:winhelo.bim stack:1k map:winhelo.map winhelo.obj a_nask.obj
@@ -126,25 +126,23 @@ walk.bim : walk.obj a_nask.obj Makefile
 walk.hrb : walk.bim Makefile
 	$(BIM2HRB) walk.bim walk.hrb 48k
 
+noodle.bim : noodle.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:noodle.bim stack:1k map:noodle.map noodle.obj a_nask.obj
+
+noodle.hrb : noodle.bim Makefile
+	$(BIM2HRB) noodle.bim noodle.hrb 40k
+
 jackos.sys : asmhead.bin bootpack.hrb Makefile
 	copy /B asmhead.bin /B + bootpack.hrb jackos.sys
 
 jackos.img : ipl.bin jackos.sys Makefile \
-			hello.hrb hello2.hrb a.hrb hello3.hrb hello4.hrb hello5.hrb \
 			winhelo.hrb winhelo2.hrb winhelo3.hrb \
 			star1.hrb stars.hrb stars2.hrb \
-			lines.hrb walk.hrb
+			lines.hrb walk.hrb noodle.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:ipl.bin len:512 from:0 to:0 \
 		copy from:jackos.sys to:@: \
 		copy from:ipl.nas to:@: \
-		copy from:make.bat to:@: \
-		copy from:hello.hrb to:@: \
-		copy from:hello2.hrb to:@: \
-		copy from:a.hrb to:@: \
-		copy from:hello3.hrb to:@: \
-		copy from:hello4.hrb to:@: \
-		copy from:hello5.hrb to:@: \
 		copy from:winhelo.hrb to:@: \
 		copy from:winhelo2.hrb to:@: \
 		copy from:winhelo3.hrb to:@: \
@@ -153,6 +151,7 @@ jackos.img : ipl.bin jackos.sys Makefile \
 		copy from:stars2.hrb to:@: \
 		copy from:lines.hrb to:@: \
 		copy from:walk.hrb to:@: \
+		copy from:noodle.hrb to:@: \
 		imgout:jackos.img
 		
 #一般规则

@@ -26,10 +26,9 @@ void HariMain(void)
 		api_boxfilwin(win, 28, 27, 115, 41, 7 );
 		api_putstrwin(win, 28, 27, 0 , 11, s);
 		api_settimer(timer, 100);
-		// if (api_getkey(1) != 128) {
-		// 	break;
-		// }
-		api_getkey(1);
+		if (api_getkey(1) != 128) {
+			break;
+		}
 		sec++;
 		if (sec == 60) {
 			sec = 0;

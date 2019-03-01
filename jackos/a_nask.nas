@@ -21,6 +21,7 @@
 		GLOBAL	_api_inittimer
 		GLOBAL	_api_settimer
 		GLOBAL	_api_freetimer
+		GLOBAL  _api_beep
 
 [SECTION .text]
 
@@ -99,10 +100,10 @@ _api_boxfilwin:	; void api_boxfilwin(int win, int x0, int y0, int x1, int y1, in
 _api_initmalloc:	; void api_initmalloc(void);
 		PUSH	EBX
 		MOV		EDX,8
-		MOV		EBX,[CS:0x0020]		; malloc—Ìˆæ‚Ì”Ô’n
+		MOV		EBX,[CS:0x0020]		; mallocï¿½Ìˆï¿½Ì”Ô’n
 		MOV		EAX,EBX
-		ADD		EAX,32*1024			; 32KB‚ğ‘«‚·
-		MOV		ECX,[CS:0x0000]		; ƒf[ƒ^ƒZƒOƒƒ“ƒg‚Ì‘å‚«‚³
+		ADD		EAX,32*1024			; 32KBï¿½ğ‘«‚ï¿½
+		MOV		ECX,[CS:0x0000]		; ï¿½fï¿½[ï¿½^ï¿½Zï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½gï¿½Ì‘å‚«ï¿½ï¿½
 		SUB		ECX,EAX
 		INT		0x40
 		POP		EBX
@@ -220,4 +221,10 @@ _api_freetimer:		; void api_freetimer(int timer);
 		MOV		EBX,[ESP+ 8]		; timer
 		INT		0x40
 		POP		EBX
+		RET
+
+_api_beep:							; void api_beep(int tone);
+		MOV		EDX,20
+		MOV		EAX,[ESP+4]			; tone
+		INT 	0x40
 		RET

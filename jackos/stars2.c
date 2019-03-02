@@ -6,6 +6,8 @@ void api_point(int win, int x, int y, int col);
 void api_refreshwin(int win, int x0, int y0, int x1, int y1);
 void api_end(void);
 
+int rand(void);
+
 void HariMain(void)
 {
     char *buf;

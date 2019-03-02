@@ -6,18 +6,18 @@ void init_gdtidt(void)
 	struct GATE_DESCRIPTOR*	idt = (struct GATE_DESCRIPTOR*)ADR_IDT;
 	int i;
 	
-	// GDT初始化
+	/* GDT初始化 */
 	set_segmdesc(gdt+1, 0xffffffff, 0x00000000, AR_DATA32_RW);
 	set_segmdesc(gdt+2, LIMIT_BOTPAK, ADR_BOTPAK, AR_CODE32_ER);
 	load_gdtr(LIMIT_GDT, ADR_GDT);
 	
-	// IDT初始化
+	/* IDT初始化 */
 	for (i = 0; i < LIMIT_IDT/8; i++) {
 		set_gatedesc(idt+i, 0, 0, 0);
 	}
 	load_idtr(LIMIT_IDT, ADR_IDT);
 	
-	/*IDT设置*/
+	/* IDT设置 */
 	set_gatedesc(idt + 0x0c, (int) asm_inthandler0c, 2 * 8, AR_INTGATE32);
 	set_gatedesc(idt + 0x0d, (int) asm_inthandler0d, 2 * 8, AR_INTGATE32);
 	set_gatedesc(idt + 0x20, (int) asm_inthandler20, 2 * 8, AR_INTGATE32);
@@ -32,7 +32,7 @@ void init_gdtidt(void)
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar)
 {
 	if (limit > 0xfffff) {
-		ar |= 0x8000; // G_bit = 1
+		ar |= 0x8000; /* G_bit = 1 */
 		limit /= 0x1000;
 	}
 	sd->limit_low	 = limit & 0xffff;

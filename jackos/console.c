@@ -6,16 +6,15 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 {
 	struct TASK	*task = task_now();
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
-	int i, fifobuf[128], *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
+	int i, *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
 	struct CONSOLE cons;
 	char cmdline[30];
 	cons.sht = sheet;
 	cons.cur_x = 	8;
 	cons.cur_y =   28;
 	cons.cur_c =   -1;
-	*((int *)0x0fec) = (int)&cons;
+	task->cons = &cons;
 	
-	fifo32_init(&task->fifo, 128, fifobuf, task);
 	cons.timer = timer_alloc();
 	timer_init(cons.timer, &task->fifo, 1);
 	timer_settime(cons.timer, 50);
@@ -282,18 +281,18 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 		p = (char *)memman_alloc_4k(memman, finfo->size);
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
 		if (finfo->size >= 36 && strncmp(p+4, "Hari", 4) == 0) {
-			segsiz 	= *((int *)(p + 0x0000));
-			esp 	= *((int *)(p + 0x000c));
-			datsiz = *((int *)(p + 0x0010));
-			dathrb 	= *((int *)(p + 0x0014));
+			segsiz 	= *((int *) (p + 0x0000));
+			esp 	= *((int *) (p + 0x000c));
+			datsiz 	= *((int *) (p + 0x0010));
+			dathrb 	= *((int *) (p + 0x0014));
 			q = (char *) memman_alloc_4k(memman, segsiz);
-			*((int *) 0xfe8) = (int) q;
-			set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60); /*可执行代码段*/
-			set_segmdesc(gdt + 1004, segsiz - 1,   	  (int) q, AR_DATA32_RW + 0x60); /*数据段*/
+			task->ds_base = (int) q;
+			set_segmdesc(gdt + task->sel / 8 + 1000, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60); /*可执行代码段*/
+			set_segmdesc(gdt + task->sel / 8 + 2000, segsiz - 1,   	  (int) q, AR_DATA32_RW + 0x60); /*数据段*/
 			for (i = 0; i < datsiz; i++) {
 				q[esp + i] = p[dathrb + i];
 			}
-			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			start_app(0x1b, task->sel + 1000 * 8, esp, task->sel + 2000 * 8, &(task->tss.esp0));
 			shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 			for (i = 0; i < MAX_SHEETS; i++) {
 				sht = &(shtctl->sheets0[i]);
@@ -316,9 +315,9 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
-	int ds_base = *((int *) 0x0fe8);
 	struct TASK *task = task_now();
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *) 0x0fec);
+	int ds_base = task->ds_base;
+	struct CONSOLE *cons = task->cons;
 	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *) 0x0fe4);
 	struct SHEET *sht;
 	int *reg = &eax + 1; /*eax后面的地址*/
@@ -341,8 +340,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sht->flags |= 0x10;
 		sheet_setbuf(sht, (char *) ebx + ds_base, esi, edi, eax);
 		make_window8((char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
-		sheet_slide(sht, 100, 50);
-		sheet_updown(sht, 3);	/*背景层3，位于task_a之上*/
+		sheet_slide(sht, (shtctl->xsize - esi) / 2, (shtctl->ysize -edi) / 2);
+		sheet_updown(sht, shtctl->top);	/*将窗口的高度设置为当前鼠标所在层的高度，鼠标移到上层*/
 		reg[7] = (int) sht;
 	} else if (edx == 6) {
 		sht = (struct SHEET *) (ebx & 0xfffffffe);
@@ -440,8 +439,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 
 int *inthandler0c(int *esp)
 {
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *) 0x0fec);
 	struct TASK *task = task_now();
+	struct CONSOLE *cons = task->cons;
 	char s[10];
 	cons_putstr0(cons, "\nINT 0C :\n Stack Exception.\n");
 	sprintf(s, "EIP = %08X\n", esp[11]);
@@ -451,8 +450,8 @@ int *inthandler0c(int *esp)
 
 int *inthandler0d(int *esp)
 {
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
 	struct TASK *task = task_now();
+	struct CONSOLE *cons = task->cons;
 	cons_putstr0(cons, "\nINT 0D :\n General Protected Exception.\n");
 	return &(task->tss.esp0); /*强制结束程序*/
 }

@@ -96,6 +96,12 @@ winhelo3.bim : winhelo3.obj a_nask.obj Makefile
 winhelo3.hrb : winhelo3.bim Makefile
 	$(BIM2HRB) winhelo3.bim winhelo3.hrb 0
 
+a.bim : a.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:a.bim map:a.map a.obj a_nask.obj
+
+a.hrb : a.bim Makefile
+	$(BIM2HRB) a.bim a.hrb 0
+
 star1.bim : star1.obj a_nask.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:star1.bim stack:1k map:star1.map star1.obj a_nask.obj
 
@@ -154,7 +160,7 @@ jackos.sys : asmhead.bin bootpack.hrb Makefile
 	copy /B asmhead.bin /B + bootpack.hrb jackos.sys
 
 jackos.img : ipl.bin jackos.sys Makefile \
-			winhelo.hrb winhelo2.hrb winhelo3.hrb \
+			winhelo.hrb winhelo2.hrb winhelo3.hrb a.hrb \
 			star1.hrb stars.hrb stars2.hrb \
 			lines.hrb walk.hrb noodle.hrb beepdown.hrb color.hrb color2.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
@@ -164,6 +170,7 @@ jackos.img : ipl.bin jackos.sys Makefile \
 		copy from:winhelo.hrb to:@: \
 		copy from:winhelo2.hrb to:@: \
 		copy from:winhelo3.hrb to:@: \
+		copy from:a.hrb to:@: \
 		copy from:star1.hrb to:@: \
 		copy from:stars.hrb to:@: \
 		copy from:stars2.hrb to:@: \

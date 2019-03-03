@@ -1,1 +1,1 @@
-.\make.bat run
+.\make.bat run_full

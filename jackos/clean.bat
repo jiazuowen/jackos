@@ -1,1 +1,1 @@
-.\make.bat clean
+.\make.bat clean_full

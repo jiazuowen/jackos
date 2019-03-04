@@ -1,5 +1,5 @@
-APP      = winhelo
-STACK    = 8k
+APP      = typeipl
+STACK    = 1k
 MALLOC   = 0k
 
 include ../app_make.txt

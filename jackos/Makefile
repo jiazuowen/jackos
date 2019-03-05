@@ -19,7 +19,7 @@ jackos.img : haribote/ipl.bin haribote/jackos.sys Makefile \
 			lines/lines.hrb walk/walk.hrb noodle/noodle.hrb beepdown/beepdown.hrb \
 			color/color.hrb color2/color2.hrb \
 			sosu/sosu.hrb sosu2/sosu2.hrb sosu3/sosu3.hrb \
-			typeipl/typeipl.hrb
+			typeipl/typeipl.hrb type/type.hrb
 	@$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:haribote/ipl.bin len:512 from:0 to:0 \
 		copy from:haribote/jackos.sys to:@: \
@@ -44,6 +44,7 @@ jackos.img : haribote/ipl.bin haribote/jackos.sys Makefile \
 		copy from:sosu2/sosu2.hrb to:@: \
 		copy from:sosu3/sosu3.hrb to:@: \
 		copy from:typeipl/typeipl.hrb to:@: \
+		copy from:type/type.hrb to:@: \
 		imgout:jackos.img
 
 
@@ -77,6 +78,11 @@ full :
 	$(MAKE) -C beepdown
 	$(MAKE) -C color
 	$(MAKE) -C color2
+	$(MAKE) -C sosu
+	$(MAKE) -C sosu2
+	$(MAKE) -C sosu3
+	$(MAKE) -C typeipl
+	$(MAKE) -C type
 	$(MAKE) jackos.img
 
 run_full :
@@ -122,6 +128,11 @@ clean_full :
 	$(MAKE) -C beepdown		clean
 	$(MAKE) -C color		clean
 	$(MAKE) -C color2		clean
+	$(MAKE) -C sosu			clean
+	$(MAKE) -C sosu2		clean
+	$(MAKE) -C sosu3		clean
+	$(MAKE) -C typeipl		clean
+	$(MAKE) -C type			clean
 
 src_only_full :
 	$(MAKE) -C haribote		src_only
@@ -142,6 +153,11 @@ src_only_full :
 	$(MAKE) -C beepdown		src_only
 	$(MAKE) -C color		src_only
 	$(MAKE) -C color2		src_only
+	$(MAKE) -C sosu			src_only
+	$(MAKE) -C sosu2		src_only
+	$(MAKE) -C sosu3		src_only
+	$(MAKE) -C typeipl		src_only
+	$(MAKE) -C type			src_only
 	-$(DEL) jackos.img	
 
 refresh :

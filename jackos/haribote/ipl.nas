@@ -1,7 +1,7 @@
 ; jackos-ipl (Initial Program Loader)
 ; TAB=4
 
-CYLS	EQU		10				;
+CYLS	EQU		20				;
 
 		ORG		0x7c00			; 指明程序的装载地址
 

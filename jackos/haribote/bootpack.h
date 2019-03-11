@@ -103,7 +103,6 @@ void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 
 /*int.c*/
 void init_pic(void);
-void inthandler27(int *esp);
 #define PIC0_ICW1		0x0020		// ICW 初始化控制数据
 #define PIC0_OCW2		0x0020
 #define PIC0_IMR		0x0021		// IMR 中断屏蔽寄存器
@@ -219,6 +218,7 @@ struct TASK {
 	struct FILEHANDLE *fhandle;
 	int *fat;
 	char *cmdline;
+	unsigned char langmode, langbyte1;
 };
 struct TASKLEVEL {
 	int running;				/*正在运行的任务数量*/
@@ -270,6 +270,7 @@ void cmd_dir(struct CONSOLE *cons);
 void cmd_exit(struct CONSOLE *cons, int *fat);
 void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal);
+void cmd_langmode(struct CONSOLE *cons, char *cmdline);
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 int *inthandler0c(int *esp);
@@ -286,6 +287,11 @@ struct FILEINFO {
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
+char *file_loadfile2(int clustno, int *psize, int *fat);
+
+/* tek.c */
+int tek_getsize(unsigned char *p);
+int tek_decomp(unsigned char *p, char *q, int size);
 
 /*bootpack.c*/
 struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal);

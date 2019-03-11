@@ -12,18 +12,20 @@ default :
 	$(MAKE) jackos.img
 
 
-jackos.img : haribote/ipl.bin haribote/jackos.sys Makefile \
+jackos.img : haribote/ipl09.bin haribote/jackos.sys Makefile \
 			a/a.hrb hello3/hello3.hrb hello4/hello4.hrb hello5/hello5.hrb \
 			winhelo/winhelo.hrb winhelo2/winhelo2.hrb winhelo3/winhelo3.hrb \
 			star1/star1.hrb stars/stars.hrb stars2/stars2.hrb \
 			lines/lines.hrb walk/walk.hrb noodle/noodle.hrb beepdown/beepdown.hrb \
 			color/color.hrb color2/color2.hrb \
 			sosu/sosu.hrb sosu2/sosu2.hrb sosu3/sosu3.hrb \
-			typeipl/typeipl.hrb type/type.hrb
+			type/type.hrb iroha/iroha.hrb \
+			chklang/chklang.hrb notrec/notrec.hrb bball/bball.hrb \
+			invader/invader.hrb calc/calc.hrb tview/tview.hrb mmlplay/mmlplay.hrb gview/gview.hrb
 	@$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
-		wbinimg src:haribote/ipl.bin len:512 from:0 to:0 \
+		wbinimg src:haribote/ipl09.bin len:512 from:0 to:0 \
 		copy from:haribote/jackos.sys to:@: \
-		copy from:haribote/ipl.nas to:@: \
+		copy from:haribote/ipl09.nas to:@: \
 		copy from:a/a.hrb to:@: \
 		copy from:hello3/hello3.hrb to:@: \
 		copy from:hello4/hello4.hrb to:@: \
@@ -43,8 +45,24 @@ jackos.img : haribote/ipl.bin haribote/jackos.sys Makefile \
 		copy from:sosu/sosu.hrb to:@: \
 		copy from:sosu2/sosu2.hrb to:@: \
 		copy from:sosu3/sosu3.hrb to:@: \
-		copy from:typeipl/typeipl.hrb to:@: \
 		copy from:type/type.hrb to:@: \
+		copy from:iroha/iroha.hrb to:@: \
+		copy from:chklang/chklang.hrb to:@: \
+		copy from:euc.txt to:@: \
+		copy from:notrec/notrec.hrb to:@: \
+		copy from:bball/bball.hrb to:@: \
+		copy from:invader/invader.hrb to:@: \
+		copy from:calc/calc.hrb to:@: \
+		copy from:tview/tview.hrb to:@: \
+		copy from:mmlplay/mmlplay.hrb to:@: \
+		copy from:mmldata/kirakira.mml to:@: \
+		copy from:mmldata/fujisan.mml to:@: \
+		copy from:mmldata/daigo.mml to:@: \
+		copy from:mmldata/daiku.mml to:@: \
+		copy from:gview/gview.hrb to:@: \
+		copy from:pictdata/fujisan.jpg to:@: \
+		copy from:pictdata/night.bmp to:@: \
+		copy from:nihongo/nihongo.fnt to:@: \
 		imgout:jackos.img
 
 
@@ -81,8 +99,16 @@ full :
 	$(MAKE) -C sosu
 	$(MAKE) -C sosu2
 	$(MAKE) -C sosu3
-	$(MAKE) -C typeipl
 	$(MAKE) -C type
+	$(MAKE) -C iroha
+	$(MAKE) -C chklang
+	$(MAKE) -C notrec
+	$(MAKE) -C bball
+	$(MAKE) -C invader
+	$(MAKE) -C calc
+	$(MAKE) -C tview
+	$(MAKE) -C mmlplay
+	$(MAKE) -C gview
 	$(MAKE) jackos.img
 
 run_full :
@@ -131,8 +157,16 @@ clean_full :
 	$(MAKE) -C sosu			clean
 	$(MAKE) -C sosu2		clean
 	$(MAKE) -C sosu3		clean
-	$(MAKE) -C typeipl		clean
 	$(MAKE) -C type			clean
+	$(MAKE) -C iroha		clean
+	$(MAKE) -C chklang		clean
+	$(MAKE) -C notrec		clean
+	$(MAKE) -C bball 		clean
+	$(MAKE) -C invader		clean
+	$(MAKE) -C calc			clean
+	$(MAKE) -C tview		clean
+	$(MAKE) -C mmlplay		clean
+	$(MAKE) -C gview		clean
 
 src_only_full :
 	$(MAKE) -C haribote		src_only
@@ -156,8 +190,16 @@ src_only_full :
 	$(MAKE) -C sosu			src_only
 	$(MAKE) -C sosu2		src_only
 	$(MAKE) -C sosu3		src_only
-	$(MAKE) -C typeipl		src_only
 	$(MAKE) -C type			src_only
+	$(MAKE) -C iroha		src_only
+	$(MAKE) -C chklang		src_only
+	$(MAKE) -C notrec 		src_only
+	$(MAKE) -C bball 		src_only
+	$(MAKE) -C invader 		src_only
+	$(MAKE) -C calc			src_only
+	$(MAKE) -C tview		src_only
+	$(MAKE) -C mmlplay		src_only
+	$(MAKE) -C gview		src_only
 	-$(DEL) jackos.img	
 
 refresh :

@@ -10,6 +10,7 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 	struct CONSOLE cons;
 	struct FILEHANDLE fhandle[8];
 	char cmdline[30];
+	unsigned char *nihongo = (char *) *((int *) 0x0fe8);
 
 	cons.sht = sheet;
 	cons.cur_x = 	8;
@@ -29,6 +30,12 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 	}
 	task->fhandle = fhandle;
 	task->fat = fat;
+	if (nihongo[4096] != 0xff) {	/*是否载入日文字库*/
+		task->langmode = 1;
+	} else {
+		task->langmode = 0;
+	}
+	task->langbyte1 = 0;
 	/*显示提示符*/
 	cons_putchar(&cons, '>', 1);
 
@@ -145,6 +152,7 @@ void cons_newline(struct CONSOLE *cons)
 {
 	int x, y;
 	struct SHEET *sheet = cons->sht;
+	struct TASK *task = task_now();
 	if (cons->cur_y < 28+112) { 	/*换行*/
 		cons->cur_y += 16;
 	} else {					/*滚动*/
@@ -163,6 +171,9 @@ void cons_newline(struct CONSOLE *cons)
 		}
 	}
 	cons->cur_x = 8;
+	if (task->langmode == 1 && task->langbyte1 != 0) {
+		cons->cur_x += 8;
+	}
 	return;
 }
 
@@ -197,6 +208,8 @@ void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned int mem
 		cmd_start(cons, cmdline, memtotal);
 	} else if (strncmp(cmdline, "ncst ", 5) == 0) {
 		cmd_ncst(cons, cmdline, memtotal);
+	} else if (strncmp(cmdline, "langmode ", 9) == 0) {
+		cmd_langmode(cons, cmdline);
 	} else if (cmdline[0] != 0) {
 		/* 不是命令也不是空行 */
 		if (cmd_app(cons, fat, cmdline) == 0) {
@@ -302,13 +315,26 @@ void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal)
 	return;
 }
 
+void cmd_langmode(struct CONSOLE *cons, char *cmdline)
+{
+	struct TASK *task = task_now();
+	unsigned char mode = cmdline[9] - '0';
+	if (mode <= 2) {
+		task->langmode = mode;
+	} else {
+		cons_putstr0(cons, "mode number error.\n");
+	}
+	cons_newline(cons);
+	return;
+}
+
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	struct FILEINFO *finfo;
 	char name[18], *p, *q;
 	struct TASK *task = task_now();
-	int i, segsiz, datsiz, esp, dathrb;
+	int i, segsiz, datsiz, esp, dathrb, appsize;
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
 
@@ -335,9 +361,9 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 
 	if (finfo != 0) {
 		/*找到文件的情况*/
-		p = (char *)memman_alloc_4k(memman, finfo->size);
-		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-		if (finfo->size >= 36 && strncmp(p+4, "Hari", 4) == 0) {
+		appsize = finfo->size;
+		p = file_loadfile2(finfo->clustno, &appsize, fat);
+		if (appsize >= 36 && strncmp(p+4, "Hari", 4) == 0 && *p == 0x00) {
 			segsiz 	= *((int *) (p + 0x0000));
 			esp 	= *((int *) (p + 0x000c));
 			datsiz 	= *((int *) (p + 0x0010));
@@ -366,10 +392,11 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			}
 			timer_cancelall(&task->fifo);
 			memman_free_4k(memman, (int) q, segsiz);
+			task->langbyte1 = 0;
 		} else {
 			cons_putstr0(cons, ".hrb file format error.\n");
 		}
-		memman_free_4k(memman, (int) p, finfo->size);
+		memman_free_4k(memman, (int) p, appsize);
 		cons_newline(cons);
 		return 1;
 	}
@@ -445,6 +472,16 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		hrb_api_linewin(sht, eax, ecx, esi, edi, ebp);
 		if ((ebx & 1) == 0) {
+			if (eax > esi) {
+				i = eax;
+				eax = esi;
+				esi = i;
+			}
+			if (ecx > edi) {
+				i = ecx;
+				ecx = edi;
+				edi = i;
+			}
 			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
 		}
 	} else if (edx == 14) {
@@ -520,10 +557,9 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				(struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
 			if (finfo != 0) {
 				reg[7] = (int) fh;
-				fh->buf = (char *) memman_alloc_4k(memman, finfo->size);
 				fh->size = finfo->size;
 				fh->pos = 0;
-				file_loadfile(finfo->clustno, finfo->size, fh->buf, task->fat, (char *) (ADR_DISKIMG + 0x003e00));
+				fh->buf = file_loadfile2(finfo->clustno, &fh->size, task->fat);
 			}
 		}
 	} else if (edx == 22) {
@@ -577,6 +613,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			i++;
 		}
 		reg[7] = i;
+	} else if (edx == 27) {
+		reg[7] = task->langmode;
 	}
 	return 0;
 }

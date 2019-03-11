@@ -4,7 +4,7 @@ INCPATH	 = ../../z_tools/haribote/
 OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj \
 		dsctbl.obj int.obj fifo.obj keyboard.obj \
 		mouse.obj memory.obj sheet.obj timer.obj mtask.obj \
-		file.obj window.obj console.obj
+		file.obj window.obj console.obj tek.obj
 
 MAKE     = $(TOOLPATH)make.exe -r
 NASK     = $(TOOLPATH)nask.exe
@@ -23,11 +23,11 @@ DEL      = del
 
 #默认目标
 default :
-	$(MAKE) ipl.bin
+	$(MAKE) ipl09.bin
 	$(MAKE) jackos.sys
 
-ipl.bin : ipl.nas Makefile
-	$(NASK) ipl.nas ipl.bin ipl.lst
+ipl09.bin : ipl09.nas Makefile
+	$(NASK) ipl09.nas ipl09.bin ipl09.lst
 	
 asmhead.bin : asmhead.nas Makefile
 	$(NASK) asmhead.nas asmhead.bin asmhead.lst
@@ -69,9 +69,11 @@ clean :
 	-$(DEL) *.obj
 	-$(DEL) *.hrb
 	-$(DEL) *.bim
+	-$(DEL) *.bin
+	-$(DEL) jackos.sys
 	-$(DEL) bootpack.map
 	
 src_only :
 	$(MAKE) clean
-	-$(DEL) ipl.bin
+	-$(DEL) ipl09.bin
 	-$(DEL) jackos.sys
